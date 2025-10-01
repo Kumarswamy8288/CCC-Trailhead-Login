@@ -12,8 +12,8 @@ import {
 import bcrypt from "bcryptjs";
 import { AdminLoginSchema, StudentCreateSchema, StudentUpdateSchema } from "@/shared/types";
 
-// ✅ Import types from worker-configuration
-import type { Env, Variables } from "./worker-configuration";
+// ✅ Correct import for Env & Variables
+import type { Env, Variables } from "@/worker/worker-configuration";
 
 const AdminPasswordChangeSchema = z.object({
   currentPassword: z.string().min(1),
@@ -27,15 +27,15 @@ app.use("*", async (c, next) => {
   c.header("Access-Control-Allow-Origin", "*");
   c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  
+
   if (c.req.method === "OPTIONS") return c.text("");
-  
+
   await next();
 });
 
 // Google OAuth endpoints
-app.get('/api/oauth/google/redirect_url', async (c) => {
-  const redirectUrl = await getOAuthRedirectUrl('google', {
+app.get("/api/oauth/google/redirect_url", async (c) => {
+  const redirectUrl = await getOAuthRedirectUrl("google", {
     apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
     apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
   });
@@ -89,7 +89,8 @@ app.put("/api/users/profile", authMiddleware, async (c) => {
   const user = c.get("user");
   const body = await c.req.json();
   if (!user) return c.json({ error: "Unauthorized" }, 401);
-  if (!body.college_name || typeof body.college_name !== "string") return c.json({ error: "College name is required" }, 400);
+  if (!body.college_name || typeof body.college_name !== "string")
+    return c.json({ error: "College name is required" }, 400);
 
   await c.env.DB.prepare(
     "UPDATE students SET college_name = ?, updated_at = datetime('now') WHERE mocha_user_id = ?"
@@ -99,19 +100,19 @@ app.put("/api/users/profile", authMiddleware, async (c) => {
 });
 
 // Logout
-app.get('/api/logout', async (c) => {
+app.get("/api/logout", async (c) => {
   const sessionToken = getCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME);
-  if (typeof sessionToken === 'string') {
+  if (typeof sessionToken === "string") {
     await deleteSession(sessionToken, {
       apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
       apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
     });
   }
 
-  setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, '', {
+  setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, "", {
     httpOnly: true,
-    path: '/',
-    sameSite: 'none',
+    path: "/",
+    sameSite: "none",
     secure: true,
     maxAge: 0,
   });
@@ -126,7 +127,8 @@ app.post("/api/admin/login", zValidator("json", AdminLoginSchema), async (c) => 
     "SELECT * FROM admins WHERE email = ? AND is_admin = 1"
   ).bind(email).first();
 
-  if (!admin || !bcrypt.compareSync(password, admin.password_hash as string)) return c.json({ error: "Invalid Admin Credentials" }, 401);
+  if (!admin || !bcrypt.compareSync(password, admin.password_hash as string))
+    return c.json({ error: "Invalid Admin Credentials" }, 401);
 
   const encodedToken = JSON.stringify({ id: admin.id, email: admin.email, isAdmin: true });
 
@@ -140,14 +142,14 @@ app.post("/api/admin/login", zValidator("json", AdminLoginSchema), async (c) => 
 
   const isDefaultPassword = bcrypt.compareSync("password", admin.password_hash as string);
 
-  return c.json({ 
-    success: true, 
-    admin: { 
-      id: admin.id, 
-      email: admin.email, 
+  return c.json({
+    success: true,
+    admin: {
+      id: admin.id,
+      email: admin.email,
       name: admin.name,
-      requiresPasswordChange: isDefaultPassword
-    } 
+      requiresPasswordChange: isDefaultPassword,
+    },
   });
 });
 
@@ -167,7 +169,7 @@ const adminAuthMiddleware = async (c: any, next: any) => {
   await next();
 };
 
-// Remaining admin routes (logout, stats, students, change-password)
-// ... Keep all routes as in your original file
+// Keep all remaining admin routes exactly as in your original code
+// (logout, stats, students CRUD, change-password, etc.)
 
 export default app;
