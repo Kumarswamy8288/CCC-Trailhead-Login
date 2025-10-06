@@ -6,9 +6,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    }
   },
-  "include": ["src/worker", "src/worker/worker-configuration.d.ts"]
+  "include": ["src/worker/**/*.ts"]  // ✅ include all .ts files including worker-configuration.ts
 }
