@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { getCookie, setCookie } from "hono/cookie";
-import z from "zod";
 import {
   exchangeCodeForSessionToken,
   getOAuthRedirectUrl,
@@ -10,15 +9,10 @@ import {
   MOCHA_SESSION_TOKEN_COOKIE_NAME,
 } from "@getmocha/users-service/backend";
 import bcrypt from "bcryptjs";
-import { AdminLoginSchema, StudentCreateSchema, StudentUpdateSchema } from "@/shared/types";
+import { AdminLoginSchema } from "@/shared/types";
 
-// ✅ Correct relative import for Vercel build
-import type { Env, Variables } from "./worker-configuration";
-
-const AdminPasswordChangeSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(6),
-});
+// ✅ Correct import from shared folder
+import type { Env, Variables } from "@/shared/worker-configuration";
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -163,21 +157,4 @@ app.post("/api/admin/login", zValidator("json", AdminLoginSchema), async (c) => 
   });
 });
 
-// --- Admin middleware ---
-const adminAuthMiddleware = async (c: any, next: any) => {
-  const adminSession = getCookie(c, "admin_session");
-  if (!adminSession) return c.json({ error: "Access Denied" }, 401);
-
-  try {
-    const adminData = JSON.parse(adminSession);
-    if (!adminData.isAdmin) return c.json({ error: "Access Denied" }, 401);
-    c.set("admin", adminData as { id: number; email: string; isAdmin: boolean });
-  } catch {
-    return c.json({ error: "Access Denied" }, 401);
-  }
-
-  await next();
-};
-
-// --- Keep all remaining admin routes same ---
 export default app;

@@ -8,5 +8,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/worker/**/*.ts"]  // ✅ include all .ts files including worker-configuration.ts
+  "include": ["src/**/*.ts"]   // ✅ include everything under src
 }
