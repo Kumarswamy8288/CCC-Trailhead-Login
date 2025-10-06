@@ -12,7 +12,7 @@ import {
 import bcrypt from "bcryptjs";
 import { AdminLoginSchema, StudentCreateSchema, StudentUpdateSchema } from "@/shared/types";
 
-// ✅ Correct relative import for Env & Variables
+// ✅ Correct relative import for Vercel build
 import type { Env, Variables } from "./worker-configuration";
 
 const AdminPasswordChangeSchema = z.object({
@@ -22,7 +22,7 @@ const AdminPasswordChangeSchema = z.object({
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-// CORS middleware
+// --- CORS Middleware ---
 app.use("*", async (c, next) => {
   c.header("Access-Control-Allow-Origin", "*");
   c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -32,17 +32,16 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-// Google OAuth redirect URL
-app.get('/api/oauth/google/redirect_url', async (c) => {
-  const redirectUrl = await getOAuthRedirectUrl('google', {
+// --- Google OAuth redirect URL ---
+app.get("/api/oauth/google/redirect_url", async (c) => {
+  const redirectUrl = await getOAuthRedirectUrl("google", {
     apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
     apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
   });
-
   return c.json({ redirectUrl }, 200);
 });
 
-// Create session
+// --- Create session ---
 app.post("/api/sessions", async (c) => {
   const body = await c.req.json();
   if (!body.code) return c.json({ error: "No authorization code provided" }, 400);
@@ -63,19 +62,23 @@ app.post("/api/sessions", async (c) => {
   return c.json({ success: true }, 200);
 });
 
-// Get current user & create student record if needed
+// --- Get current user & create student record if needed ---
 app.get("/api/users/me", authMiddleware, async (c) => {
   const user = c.get("user");
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
   const existingStudent = await c.env.DB.prepare(
     "SELECT * FROM students WHERE mocha_user_id = ?"
-  ).bind(user.id).first();
+  )
+    .bind(user.id)
+    .first();
 
   if (!existingStudent) {
     await c.env.DB.prepare(
       "INSERT INTO students (mocha_user_id, email, name, created_at, updated_at) VALUES (?, ?, ?, datetime('now'), datetime('now'))"
-    ).bind(user.id, user.email, user.google_user_data.name || user.google_user_data.given_name || "Student").run();
+    )
+      .bind(user.id, user.email, user.google_user_data.name || user.google_user_data.given_name || "Student")
+      .run();
 
     return c.json({ ...user, college_name: null });
   }
@@ -83,34 +86,37 @@ app.get("/api/users/me", authMiddleware, async (c) => {
   return c.json({ ...user, college_name: existingStudent.college_name });
 });
 
-// Update user profile
+// --- Update user profile ---
 app.put("/api/users/profile", authMiddleware, async (c) => {
   const user = c.get("user");
   const body = await c.req.json();
   if (!user) return c.json({ error: "Unauthorized" }, 401);
-  if (!body.college_name || typeof body.college_name !== "string") return c.json({ error: "College name is required" }, 400);
+  if (!body.college_name || typeof body.college_name !== "string")
+    return c.json({ error: "College name is required" }, 400);
 
   await c.env.DB.prepare(
     "UPDATE students SET college_name = ?, updated_at = datetime('now') WHERE mocha_user_id = ?"
-  ).bind(body.college_name.trim(), user.id).run();
+  )
+    .bind(body.college_name.trim(), user.id)
+    .run();
 
   return c.json({ success: true });
 });
 
-// Logout
-app.get('/api/logout', async (c) => {
+// --- Logout ---
+app.get("/api/logout", async (c) => {
   const sessionToken = getCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME);
-  if (typeof sessionToken === 'string') {
+  if (typeof sessionToken === "string") {
     await deleteSession(sessionToken, {
       apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
       apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
     });
   }
 
-  setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, '', {
+  setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, "", {
     httpOnly: true,
-    path: '/',
-    sameSite: 'none',
+    path: "/",
+    sameSite: "none",
     secure: true,
     maxAge: 0,
   });
@@ -118,16 +124,23 @@ app.get('/api/logout', async (c) => {
   return c.json({ success: true }, 200);
 });
 
-// Admin login
+// --- Admin login ---
 app.post("/api/admin/login", zValidator("json", AdminLoginSchema), async (c) => {
   const { email, password } = c.req.valid("json");
   const admin = await c.env.DB.prepare(
     "SELECT * FROM admins WHERE email = ? AND is_admin = 1"
-  ).bind(email).first();
+  )
+    .bind(email)
+    .first();
 
-  if (!admin || !bcrypt.compareSync(password, admin.password_hash as string)) return c.json({ error: "Invalid Admin Credentials" }, 401);
+  if (!admin || !bcrypt.compareSync(password, admin.password_hash as string))
+    return c.json({ error: "Invalid Admin Credentials" }, 401);
 
-  const encodedToken = JSON.stringify({ id: admin.id, email: admin.email, isAdmin: true });
+  const encodedToken = JSON.stringify({
+    id: admin.id,
+    email: admin.email,
+    isAdmin: true,
+  });
 
   setCookie(c, "admin_session", encodedToken, {
     httpOnly: true,
@@ -139,18 +152,18 @@ app.post("/api/admin/login", zValidator("json", AdminLoginSchema), async (c) => 
 
   const isDefaultPassword = bcrypt.compareSync("password", admin.password_hash as string);
 
-  return c.json({ 
-    success: true, 
-    admin: { 
-      id: admin.id, 
-      email: admin.email, 
+  return c.json({
+    success: true,
+    admin: {
+      id: admin.id,
+      email: admin.email,
       name: admin.name,
-      requiresPasswordChange: isDefaultPassword
-    } 
+      requiresPasswordChange: isDefaultPassword,
+    },
   });
 });
 
-// Admin middleware
+// --- Admin middleware ---
 const adminAuthMiddleware = async (c: any, next: any) => {
   const adminSession = getCookie(c, "admin_session");
   if (!adminSession) return c.json({ error: "Access Denied" }, 401);
@@ -166,6 +179,5 @@ const adminAuthMiddleware = async (c: any, next: any) => {
   await next();
 };
 
-// --- Keep all remaining admin routes exactly as in your original code --- //
-
+// --- Keep all remaining admin routes same ---
 export default app;
