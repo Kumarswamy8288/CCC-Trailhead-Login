@@ -8,5 +8,8 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts"]   // ✅ include everything under src
+  "include": [
+    "src/worker",
+    "src/shared/worker-configuration.ts"  // <-- explicitly include the shared config file
+  ]
 }
