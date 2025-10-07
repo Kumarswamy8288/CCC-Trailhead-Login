@@ -2,10 +2,16 @@
 export default {
   content: [
     "./index.html",
-    "./src/react-app/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        orange: { 500: '#F59E0B' },
+        green: { 400: '#4ADE80' },
+        blue: { 800: '#1E40AF' }
+      }
+    },
   },
   plugins: [],
-};
+}
