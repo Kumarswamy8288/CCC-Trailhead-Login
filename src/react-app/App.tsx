@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@getmocha/users-service/react";
 import LandingPage from "@/react-app/pages/Landing";
 import StudentDashboard from "@/react-app/pages/StudentDashboard";
@@ -10,7 +10,10 @@ import ProfileCompletion from "@/react-app/pages/ProfileCompletion";
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <BrowserRouter>
+        <h1 style={{ textAlign: "center", marginTop: "30px" }}>
+          Hello World — App.tsx Rendering OK
+        </h1>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -19,7 +22,7 @@ export default function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
-      </Router>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
