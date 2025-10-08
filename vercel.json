@@ -2,14 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.html",
-      "use": "@vercel/static-build"
+      "src": "CCC PORTAL/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "CCC PORTAL/dist"
+      }
     }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "/index.html" }
   ],
-  "buildCommand": "npm run build",
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
   "installCommand": "npm install --legacy-peer-deps",
-  "outputDirectory": "dist"
+  "outputDirectory": "CCC PORTAL/dist"
 }
